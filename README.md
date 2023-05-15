@@ -18,7 +18,7 @@ Viticulture is facing various issues that threaten its sustainability : soil deg
 Agroecological practices for soil management, such as service crops associated with no or very low soil tillage, aim to reduce soil erosion and to increase water infiltration, to improve soil physical properties (Polge de Combret - Champart et al., 2013), soil fertility (Christel et al., 2021), and carbon sequestration, to favor soil biodiversity and biological activity (Karimi et al., 2020). It help to regulate pests, natural enemies and weeds, so as the grapevine microclimate related to fungal diseases (Garcia et al., 2018; Winter et al., 2018).
 
 
-!(https://github.com/Junior-Research-Lab-IA/23_JRL_towardsagroecology/blob/main/soil.png)
+![Picture](https://github.com/Junior-Research-Lab-IA/23_JRL_towardsagroecology/blob/main/soil.png)
 
 
 
