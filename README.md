@@ -6,3 +6,5 @@ Group Member:
 - Wei Yan 
 - Azleen
 
+Supervisor: 
+- Raphaël METRAL
