@@ -1,0 +1,76 @@
+---
+title: "copy"
+author: "Melissa"
+date: "2023-06-15"
+output: html_document
+---
+
+```{r Dataset, include=FALSE}
+setwd("C:/Users/melis/OneDrive - Universiti Putra Malaysia/Documents/GitHub/23_JRL_towardsagroecology")
+
+Data <- read_csv("SALSADataset.csv", col_types = cols(Treatment = col_factor(levels = c())))%>%
+  select(-Direction)%>%
+   na.omit()
+
+Data$Year_Stability=as.factor(Data$Year_Stability)
+Data$Year_CN=as.factor(Data$Year_CN)
+Data$Year_Bulk=as.factor(Data$Year_CN)
+
+
+str(Data)
+
+```
+
+## Stability Anova Test in 2019 and 2023
+
+In this anova test, we will test the effect of treatment,block&plot(location) and year on soil stability. 
+
+```{r Stability, echo=FALSE}
+Stb=Data%>% 
+  select (Treatment,Block,Plot,Rep,Year_Stability,Stability)%>%
+  arrange(Year_Stability, Treatment)%>%
+  na.omit()
+
+Str_Stb= aov(Stability~Treatment+Year_Stability+Treatment*Year_Stability+Block+Plot, data=Stb)
+anova(Str_Stb)
+
+#Based on Anova, the plot did not affect the soil stability. 
+
+#LSD Year
+Str_Stb_Year= LSD.test(Str_Stb,"Year_Stability")
+Str_Stb_Year
+
+SigLetter_Year = Str_Stb_Year$groups%>%
+  group_by(rownames(Str_Stb_Year$groups)) %>%
+  arrange(rownames(Str_Stb_Year$groups))
+
+names(SigLetter_Year)[3] = "Year"
+
+print(SigLetter_Year)
+
+#LSD Treatment (Overall performance)
+Str_Stb_Trt= LSD.test(Str_Stb,"Treatment")
+SigLetter_Stb_Trt = Str_Stb_Trt$groups%>%
+  group_by(rownames(Str_Stb_Trt$groups)) %>%
+  arrange(groups)
+
+names(SigLetter_Stb_Trt)[3] = "Treatment"
+print(SigLetter_Stb_Trt)
+
+#LSD Block (Overall performance)
+Str_Stb_Block= LSD.test(Str_Stb,"Block")
+SigLetter_Stb_Block = Str_Stb_Block$groups%>%
+  group_by(rownames(Str_Stb_Block$groups)) %>%
+  arrange(groups)
+
+names(SigLetter_Stb_Block)[3] = "Block"
+print(SigLetter_Stb_Block)
+
+#LSD Interaction between Treatment and Year
+LSD_Test_TrtStb= LSD.test(Str_Stb, c("Treatment", "Year_Stability"))
+SigLetter_TrtStb = LSD_Test_TrtStb$groups  %>%
+  group_by(rownames(LSD_Test_TrtStb$groups)) %>%
+  arrange(groups)
+names(SigLetter_TrtStb)[3] = "Interaction between Treatment and Year"
+print(SigLetter_TrtStb)
+```
