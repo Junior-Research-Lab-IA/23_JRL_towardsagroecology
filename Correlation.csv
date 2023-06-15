@@ -1,0 +1,22 @@
+row,column,cor,P-value<0.05
+Bulk_Density,Stability,0.554486337,significant
+Bulk_Density,CN,0.555453941,significant
+Bulk_Density,humidity,0.747044147,significant
+Cmin,F_Mechanical actions,-0.535614249,significant
+Cmin,Cmin%,0.889310938,significant
+Cmin%,NO3,-0.537437918,significant
+CN,NH4,-0.644373162,significant
+CN,NO3,-0.604714158,significant
+CN,humidity,0.616956401,significant
+Nmin,DG_soilTx,0.606056218,significant
+Nmin,Nmin%,0.837161703,significant
+NO3,NH4,0.806923538,significant
+NO3,F_Mechanical actions,0.809345876,significant
+Stability,CN,0.691367087,significant
+Stability,humidity,0.700402984,significant
+TotalN,Stone:soil,0.56346478,significant
+TotalN,DG_soilTx,0.568212443,significant
+TotalN,NH4,0.654771398,significant
+TotalOM,DG_soilTx,0.57417855,significant
+TotalOM,Stone:soil,0.635646164,significant
+TotalOM,TotalN,0.883252042,significant

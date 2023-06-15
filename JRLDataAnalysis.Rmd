@@ -1,0 +1,206 @@
+---
+title: "DataAnalysis_Ver2"
+author: "Melissa"
+date: "2023-06-12"
+output: word_document
+editor_options: 
+  chunk_output_type: console
+---
+```{r package, include=FALSE}
+library(readr)
+library(agricolae)
+library(ggplot2)
+library(tidyverse)
+library(cowplot)
+library(GGally)
+library(ggpatern)
+library(leaps)
+library(Hmisc)
+library(corrplot)
+library(lmtest)
+```
+
+
+
+```{r Dataset, include=FALSE}
+setwd("C:/Users/melis/OneDrive - Universiti Putra Malaysia/Documents/GitHub/23_JRL_towardsagroecology")
+
+Data <- read_csv("SALSADataset.csv", col_types = cols(Treatment = col_factor(levels = c())))%>%
+  select(-Direction)%>%
+   na.omit()
+
+Data$Year_Stability=as.factor(Data$Year_Stability)
+Data$Year_CN=as.factor(Data$Year_CN)
+Data$Year_Bulk=as.factor(Data$Year_CN)
+
+
+str(Data)
+
+```
+
+## Stability Test in 2019 and 2023
+
+```{r Stability, echo=FALSE}
+Stb=Data%>% 
+  select (Treatment,Block,Plot,Rep,Year_Stability,Stability)%>%
+  arrange(Year_Stability, Treatment)%>%
+  na.omit()
+print(Stb)
+
+Str_Stb= aov(Stability~Treatment+Year_Stability+Treatment*Year_Stability+Block+Plot, data=Stb)
+anova(Str_Stb)
+
+
+Str_Stb_Year= LSD.test(Str_Stb,"Year_Stability")
+Str_Stb_Year
+Str_Stb_Trt= LSD.test(Str_Stb,"Treatment")
+Str_Stb_Trt
+Str_Stb_Block= LSD.test(Str_Stb,"Block")
+Str_Stb_Block
+
+LSD_Test_TrtStb= LSD.test(Str_Stb, c("Treatment", "Year_Stability"))
+LSD_Test_TrtStb
+
+
+Valuemax_TrtStb=Stb%>%
+  group_by(Treatment,Year_Stability)%>% 
+  summarize(max_value=max(Stability))
+
+
+SigLetter_TrtStb = LSD_Test_TrtStb$groups  %>%
+  group_by(rownames(LSD_Test_TrtStb$groups)) %>%
+  arrange(rownames(LSD_Test_TrtStb$groups))
+
+
+ggplot(Data, aes(x=Treatment, y=Stability,fill=Year_Stability))+ geom_boxplot()+geom_text(data=Valuemax_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_TrtStb$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+ ggtitle("Soil Stability in 2019 and 2023")+theme(plot.title = element_text(hjust = 0.5),legend.position="bottom")
+```
+
+## Bulk Density in 2020 and 2023
+
+```{r bulkdensity, echo=FALSE}
+Bulk=Data%>% 
+  select (Treatment,Block,Plot,Rep,Year_Bulk,Bulk_Density, Depth)%>%
+  arrange(Year_Bulk, Treatment)%>%
+  na.omit()
+
+Ano_Bulk= aov(Bulk_Density~Treatment+Year_Bulk+Depth+Treatment*Year_Bulk+Block+Plot, data=Bulk)
+anova(Ano_Bulk)
+
+
+Bulk_Year= LSD.test(Ano_Bulk,"Year_Bulk")
+Bulk_Year
+Bulk_Trt= LSD.test(Ano_Bulk,"Treatment")
+Bulk_Trt
+Bulk_Block= LSD.test(Ano_Bulk,"Block")
+Bulk_Block
+
+LSD_Test_Bulk= LSD.test(Ano_Bulk, c("Treatment", "Year_Bulk"))
+LSD_Test_Bulk
+
+Valuemax_Bulk=Bulk%>%
+  group_by(Treatment,Year_Bulk)%>% 
+  summarize(max_value=max(Bulk_Density))
+
+
+SigLetter_Bulk = LSD_Test_Bulk$groups  %>%
+  group_by(rownames(LSD_Test_Bulk$groups)) %>%
+  arrange(rownames(LSD_Test_Bulk$groups))
+
+
+ggplot(Data, aes(x=Treatment, y=Bulk_Density,fill=Year_Bulk))+ geom_boxplot()+geom_text(data=Valuemax_Bulk, aes(x=Treatment, y=0.1+max_value, label=SigLetter_Bulk$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+ ggtitle("Bulk Density in 2019 and 2023")+theme(plot.title = element_text(hjust = 0.5),legend.position="bottom")
+```
+
+## Corelation Test
+
+```{r correlation, echo=FALSE}
+str(Data)
+
+X= Data %>% 
+ select(11:25)
+ggpairs(X) 
+
+Corelation<- cor(X)
+Corelation
+
+res2 <- rcorr(as.matrix(X))
+correlation = res2$r
+correlation = res2$P
+
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+    )
+}
+
+Corrlation_test1=flattenCorrMatrix(res2$r, res2$P)%>%
+  filter(p<=0.05,cor<=-0.5)
+Corrlation_test2=flattenCorrMatrix(res2$r, res2$P)%>%
+  filter(p<=0.05,cor>=0.5)
+
+Correlation=rbind(Corrlation_test1,Corrlation_test2)%>%
+  select(-p)%>%
+  arrange(cor)%>%
+  mutate(`P-value<0.05`= "significant")
+view(Correlation)
+write.csv(Correlation,"C:/Users/melis/OneDrive - Universiti Putra Malaysia/Documents/GitHub/23_JRL_towardsagroecology/Correlation.csv",row.names=FALSE)
+```
+
+##Soil Stability. 
+
+```{r Stability, echo=FALSE}
+
+Stability_model=Data%>% 
+  select(-Direction,-Variety,-Year_CN,-Year_Bulk,)%>%
+  na.omit()%>%
+  group_by(Treatment,Block,Year_Stability,Depth)%>%
+  summarise(Stability= mean(Stability),bulk=mean(Bulk_Density),TotalOM=mean(TotalOM),TotalN=mean(TotalN),CN= mean(CN),Cmin=mean(Cmin),`Cmin%`=mean(`Cmin%`), NH4=mean(NH4), NO3= mean(NO3), Nmin_Drysoil=mean(Nmin),`Nmin%`=mean(`Nmin%`), humidity=mean(humidity), F_Mechanical=mean(`F_Mechanical actions`), soiltx=mean(DG_soilTx),`Stone:soil`=mean(`Stone:soil`) )         
+            
+str(Stability_model)
+Stability_model$Year_Stability=as.factor(Stability_model$Year_Stability)
+
+Stb_1=lm(Stability~ Treatment+Block+Year_Stability+Depth+ TotalOM +TotalN+CN+Cmin+`Cmin%`+NO3+NH4+Nmin_Drysoil+`Nmin%`+humidity+F_Mechanical+soiltx+`Stone:soil`, data=Stability_model)
+
+AIC_Stb_1=step(Stb_1,direction="both")
+
+Stb_2=lm(Stability ~ Treatment + Block + Year_Stability + TotalN + CN + 
+    Cmin + NO3 + NH4 + Nmin_Drysoil + `Nmin%` + humidity, data=Stability_model)
+drop1(Stb_2,.~.,test="F")
+
+summary(Stb_2)
+
+drop1(Stb_4,.~.,test="F")
+```
+
+**Soil Stability multiple linear model:**
+
+*lm(formula = Stability ~ Treatment + Block + Year_Stability + 
+    TotalN + CN + Cmin + NO3 + NH4 + Nmin_Drysoil + `Nmin%` + 
+    humidity, data = Stability_model)*
+
+Adjusted R-squared:  **0.9854**
+
+
+**Model Assumption Check**
+
+```{r normality, echo=FALSE, message=FALSE, warning=FALSE}
+Stability_model$Stb_2=Stb_2 $residuals
+ks.test(Stability_model$Stb_2,"pnorm",mean=0,sd=sd(Stability_model$Stb_2))
+shapiro.test(Stability_model$Stb_2)
+```
+*It is normal*
+
+2. Homoscedasticity Test
+
+```{r Homoscedasticity, echo=FALSE, message=FALSE, warning=FALSE}
+bptest(Stb_2)
+```
+It is homoscedasticity. 
+
+
+
+
+
