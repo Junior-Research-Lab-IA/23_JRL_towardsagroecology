@@ -1,22 +1,21 @@
-row,column,cor,P-value<0.05
-Bulk_Density,Stability,0.554486337,significant
-Bulk_Density,CN,0.555453941,significant
-Bulk_Density,humidity,0.747044147,significant
-Cmin,F_Mechanical actions,-0.535614249,significant
-Cmin,Cmin%,0.889310938,significant
-Cmin%,NO3,-0.537437918,significant
-CN,NH4,-0.644373162,significant
-CN,NO3,-0.604714158,significant
-CN,humidity,0.616956401,significant
-Nmin,DG_soilTx,0.606056218,significant
-Nmin,Nmin%,0.837161703,significant
-NO3,NH4,0.806923538,significant
-NO3,F_Mechanical actions,0.809345876,significant
-Stability,CN,0.691367087,significant
-Stability,humidity,0.700402984,significant
-TotalN,Stone:soil,0.56346478,significant
-TotalN,DG_soilTx,0.568212443,significant
-TotalN,NH4,0.654771398,significant
-TotalOM,DG_soilTx,0.57417855,significant
-TotalOM,Stone:soil,0.635646164,significant
-TotalOM,TotalN,0.883252042,significant
+"row","column","cor","P-value<0.05"
+"CN","NH4",-0.632178013294189,"significant"
+"CN","NO3",-0.578738519465399,"significant"
+"TotalOM","Cmin",0.512006461951218,"significant"
+"Nmin","DG_soilTx",0.540144633878442,"significant"
+"Bulk_Density","CN",0.546345468426616,"significant"
+"Bulk_Density","Stability",0.5471372954082,"significant"
+"TotalN","DG_soilTx",0.555494942282481,"significant"
+"TotalOM","DG_soilTx",0.55747710448035,"significant"
+"TotalN","Stone:soil",0.560639104482183,"significant"
+"CN","Humidity",0.609531367953642,"significant"
+"TotalOM","Stone:soil",0.633458847700249,"significant"
+"Stability","CN",0.679765651310281,"significant"
+"TotalN","NH4",0.682562013447108,"significant"
+"Stability","Humidity",0.687912586481909,"significant"
+"Bulk_Density","Humidity",0.74320046029126,"significant"
+"NO3","NH4",0.785143727716696,"significant"
+"NO3","F_Mechanical actions",0.803028311651096,"significant"
+"Nmin","Nmin%",0.811462292688619,"significant"
+"Cmin","Cmin%",0.874626250504832,"significant"
+"TotalOM","TotalN",0.880640140355182,"significant"
