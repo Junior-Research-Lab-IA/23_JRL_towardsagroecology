@@ -34,14 +34,14 @@ flattenCorrMatrix <- function(cormat, pmat) {
 ```{r Dataset, include=FALSE}
 setwd("C:/Users/melis/OneDrive - Universiti Putra Malaysia/Documents/GitHub/23_JRL_towardsagroecology")
 
-Data <- read_csv("SALSADataset.csv", col_types = cols(Treatment = col_factor(levels = c())))%>%
+
+Data <- read_csv("SALSADataset.csv")%>%
   select(-Direction)%>%
-   na.omit()
+  na.omit()
 
 Data$Year_Stability=as.factor(Data$Year_Stability)
 Data$Year_CN=as.factor(Data$Year_CN)
 Data$Year_Bulk=as.factor(Data$Year_CN)
-
 
 str(Data)
 
@@ -96,18 +96,19 @@ print(SigLetter_Stb_Block)
 LSD_Test_TrtStb= LSD.test(Str_Stb, c("Treatment", "Year_Stability"))
 SigLetter_TrtStb = LSD_Test_TrtStb$groups  %>%
   group_by(rownames(LSD_Test_TrtStb$groups)) %>%
-  arrange(groups)
+  arrange(rownames(LSD_Test_TrtStb$groups))
 names(SigLetter_TrtStb)[3] = "Interaction between Treatment and Year"
 print(SigLetter_TrtStb)
 
 Valuemax_TrtStb=Stb%>%
   group_by(Treatment,Year_Stability)%>%
-  summarize(max_value=max(Stability))
+  summarise(max_value=max(Stability))
   
 
 
-ggplot(Data, aes(x=Treatment, y=Stability,fill=Year_Stability))+ geom_boxplot()+geom_text(data=Valuemax_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_TrtStb$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+ ggtitle("Soil Stability in 2019 and 2023")+theme(plot.title = element_text(hjust = 0.5),legend.position="bottom")
+ggplot(Data, aes(x=Treatment, y=Stability,fill=Year_Stability))+ geom_boxplot()+geom_text(data=Valuemax_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_TrtStb$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+ ggtitle("Soil Stability in 2019 and 2023: \n The interaction between treatment and year")+theme(plot.title = element_text(hjust = 0.5),legend.position="bottom")
 ```
+
 
 ## Bulk Density in 2020 and 2023
 
@@ -117,97 +118,159 @@ Bulk=Data%>%
   arrange(Year_Bulk, Treatment)%>%
   na.omit()
 
-Ano_Bulk= aov(Bulk_Density~Treatment+Year_Bulk+Depth+Treatment*Year_Bulk+Block+Plot, data=Bulk)
+Ano_Bulk= aov(Bulk_Density~Treatment+Year_Bulk+Depth+Block+Plot+Treatment*Depth*Year_Bulk, data=Bulk)
 anova(Ano_Bulk)
 
 
 Bulk_Year= LSD.test(Ano_Bulk,"Year_Bulk")
 Bulk_Year
+
+
 Bulk_Trt= LSD.test(Ano_Bulk,"Treatment")
 Bulk_Trt
 Bulk_Block= LSD.test(Ano_Bulk,"Block")
 Bulk_Block
-
-LSD_Test_Bulk= LSD.test(Ano_Bulk, c("Treatment", "Year_Bulk"))
-LSD_Test_Bulk
-
-Valuemax_Bulk=Bulk%>%
-  group_by(Treatment,Year_Bulk)%>% 
-  summarize(max_value=max(Bulk_Density))
+Bulk_Depth = LSD.test(Ano_Bulk,"Depth")
+Bulk_Depth 
 
 
-SigLetter_Bulk = LSD_Test_Bulk$groups  %>%
-  group_by(rownames(LSD_Test_Bulk$groups)) %>%
-  arrange(rownames(LSD_Test_Bulk$groups))
+### Interaction between treatment & Year 
+LSD_Test_TrtYear= LSD.test(Ano_Bulk, c("Treatment", "Year_Bulk"))
+
+SigLetter_TrtYear = LSD_Test_TrtYear$groups  %>%
+  group_by(rownames(LSD_Test_TrtYear$groups)) %>%
+  arrange(groups)
+
+names(SigLetter_TrtYear)[3] = "Interaction between Treatment and year"
+
+SigLetter_TrtYear= SigLetter_TrtYear%>%
+  select(`Interaction between Treatment and year`, Bulk_Density, groups)
+print(SigLetter_TrtYear)
 
 
-ggplot(Data, aes(x=Treatment, y=Bulk_Density,fill=Year_Bulk))+ geom_boxplot()+geom_text(data=Valuemax_Bulk, aes(x=Treatment, y=0.1+max_value, label=SigLetter_Bulk$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+ ggtitle("Bulk Density in 2019 and 2023")+theme(plot.title = element_text(hjust = 0.5),legend.position="bottom")
+### Interaction between treatment and depth
+LSD_Test_TrtDepth= LSD.test(Ano_Bulk, c("Treatment", "Depth"))
+
+SigLetter_TrtDepth = LSD_Test_TrtDepth$groups  %>%
+  group_by(rownames(LSD_Test_TrtDepth$groups)) %>%
+  arrange(groups)
+
+names(SigLetter_TrtDepth)[3] = "Interaction between Treatment and depth"
+
+SigLetter_TrtDepth= SigLetter_TrtDepth%>%
+  select(`Interaction between Treatment and depth`, Bulk_Density, groups)
+
+print(SigLetter_TrtDepth)
+
+###Interaction between depth and year
+
+### Interaction between Treatment,depth and year
+LSD_Test_DepthYear= LSD.test(Ano_Bulk, c( "Depth", "Year_Bulk"))
+
+SigLetter_DepthYear = LSD_Test_DepthYear$groups  %>%
+  group_by(rownames(LSD_Test_DepthYear$groups)) %>%
+  arrange(groups)
+
+names(SigLetter_DepthYear)[3] = "Interaction between depth and year"
+
+SigLetter_DepthYear= SigLetter_DepthYear%>%
+  select(`Interaction between depth and year`, Bulk_Density, groups)
+print(SigLetter_DepthYear)
+
+### Interaction between Treatment,depth and year
+LSD_Test_TrtDepthYear= LSD.test(Ano_Bulk, c("Treatment", "Depth", "Year_Bulk"))
+
+SigLetter_TrtDepthYear = LSD_Test_TrtDepthYear$groups  %>%
+  group_by(rownames(LSD_Test_TrtDepthYear$groups)) %>%
+  arrange(groups)
+
+names(SigLetter_TrtDepthYear)[3] = "Interaction between Treatment,depth and year"
+
+SigLetter_TrtDepthYear= SigLetter_TrtDepthYear%>%
+  select(`Interaction between Treatment,depth and year`, Bulk_Density, groups)
+print(SigLetter_TrtDepthYear)
 ```
+
+
+```{r soilpropeties, echo=FALSE}
+Stone_ratio= aov(`Stone:soil`~ Block, data=Data)
+anova(Stone_ratio)
+LSD_Stone_ratio= LSD.test(Stone_ratio, "Block")
+LSD_Stone_ratio
+
+SoilTX= aov(`DG_soilTx`~ Block, data=Data)
+anova(SoilTX)
+LSD_SoilTX= LSD.test(SoilTX, "Block")
+LSD_SoilTX
+```
+Each block have different soil texture and stone:soil ratio. 
+
+
 
 ## Corelation Test
 
-```{r correlation, echo=FALSE}
+```{r correlation, eval=FALSE, include=FALSE}
 X= Data %>% 
  select(10:24)
 
 res2 <- rcorr(as.matrix(X))
-correlatior = res2$r
-correlation = res2$P
+#extarct r &p
+correlatio_r = res2$r
+correlation_p = res2$P
 
 Corrlation_test1=flattenCorrMatrix(res2$r, res2$P)%>%
   filter(p<=0.05,cor<=-0.5)
 Corrlation_test2=flattenCorrMatrix(res2$r, res2$P)%>%
   filter(p<=0.05,cor>=0.5)
 
+#Select p<=0.05,cor>=0.5 or cor<=-0.5
 Correlation=rbind(Corrlation_test1,Corrlation_test2)%>%
   select(-p)%>%
   arrange(cor)%>%
   mutate(`P-value<0.05`= "significant")
-view(Correlation)
+
 write.csv(Correlation,"C:/Users/melis/OneDrive - Universiti Putra Malaysia/Documents/GitHub/23_JRL_towardsagroecology/Correlation.csv",row.names=FALSE)
 ```
 
-##Soil Stability. 
+##Soil Stability Modelling. 
 
-```{r Stability, echo=FALSE}
+```{r StabilityModelling, echo=FALSE}
 
-Stability_model=Data%>% 
-  select(-Direction,-Variety,-Year_CN,-Year_Bulk,)%>%
+modelling=Data%>% 
+  select(-Variety,-Year_CN)%>%
   na.omit()%>%
   group_by(Treatment,Block,Year_Stability,Depth)%>%
-  summarise(Stability= mean(Stability),bulk=mean(Bulk_Density),TotalOM=mean(TotalOM),TotalN=mean(TotalN),CN= mean(CN),Cmin=mean(Cmin),`Cmin%`=mean(`Cmin%`), NH4=mean(NH4), NO3= mean(NO3), Nmin_Drysoil=mean(Nmin),`Nmin%`=mean(`Nmin%`), humidity=mean(humidity), F_Mechanical=mean(`F_Mechanical actions`), soiltx=mean(DG_soilTx),`Stone:soil`=mean(`Stone:soil`) )         
-            
-str(Stability_model)
-Stability_model$Year_Stability=as.factor(Stability_model$Year_Stability)
+  summarise(Stability= mean(Stability),bulk=mean(Bulk_Density),TotalOM=mean(TotalOM),TotalN=mean(TotalN),CN= mean(CN),Cmin=mean(Cmin),`Cmin%`=mean(`Cmin%`), NH4=mean(NH4), NO3= mean(NO3), Nmin_Drysoil=mean(Nmin),`Nmin%`=mean(`Nmin%`), humidity=mean(Humidity), F_Mechanical=mean(`F_Mechanical actions`), soiltx=mean(DG_soilTx),`Stone:soil`=mean(`Stone:soil`) )        
 
-Stb_1=lm(Stability~ Treatment+Block+Year_Stability+Depth+ TotalOM +TotalN+CN+Cmin+`Cmin%`+NO3+NH4+Nmin_Drysoil+`Nmin%`+humidity+F_Mechanical+soiltx+`Stone:soil`, data=Stability_model)
+            
+modelling$Year_Stability=as.factor(modelling$Year_Stability)
+
+Stb_1=lm(Stability~ Treatment+ TotalOM + Year_Stability +TotalN+CN+Cmin+`Cmin%`+NO3+NH4+Nmin_Drysoil+`Nmin%`+humidity+F_Mechanical+soiltx+`Stone:soil`, data=modelling)
 
 AIC_Stb_1=step(Stb_1,direction="both")
 
-Stb_2=lm(Stability ~ Treatment + Block + Year_Stability + TotalN + CN + 
-    Cmin + NO3 + NH4 + Nmin_Drysoil + `Nmin%` + humidity, data=Stability_model)
+Stb_2=lm(Stability ~ Treatment + TotalOM + Year_Stability + TotalN + CN + 
+    Cmin + `Cmin%` + NO3 + NH4 + Nmin_Drysoil + `Nmin%` + humidity, data=modelling)
 drop1(Stb_2,.~.,test="F")
 
 summary(Stb_2)
 
-drop1(Stb_4,.~.,test="F")
 ```
 
 **Soil Stability multiple linear model:**
 
-*lm(formula = Stability ~ Treatment + Block + Year_Stability + 
-    TotalN + CN + Cmin + NO3 + NH4 + Nmin_Drysoil + `Nmin%` + 
-    humidity, data = Stability_model)*
+*lm(formula = Stability ~ Treatment + TotalOM + Year_Stability + 
+    TotalN + CN + Cmin + `Cmin%` + NO3 + NH4 + Nmin_Drysoil + 
+    `Nmin%` + humidity, data = Stability_model)*
 
-Adjusted R-squared:  **0.9854**
+Adjusted R-squared:  **0.9466**
 
 
 **Model Assumption Check**
 
 ```{r normality, echo=FALSE, message=FALSE, warning=FALSE}
-Stability_model$Stb_2=Stb_2 $residuals
-ks.test(Stability_model$Stb_2,"pnorm",mean=0,sd=sd(Stability_model$Stb_2))
-shapiro.test(Stability_model$Stb_2)
+modelling$res.Stb_2=Stb_2 $residuals 
+shapiro.test(modelling$res.Stb_2)
 ```
 *It is normal*
 
@@ -219,6 +282,36 @@ bptest(Stb_2)
 It is homoscedasticity. 
 
 
+##Stability Modelling Test 2. 
+
+```{r Bulk_density, echo=FALSE}
+
+colnames(modelling)
+
+Bulk_model=Data%>% 
+  select(-Variety,-Year_CN,-Year_Stability)%>%
+  na.omit()%>%
+  group_by(Treatment,Block,Year_Bulk,Depth)%>%
+  summarise(Stability= mean(Stability),bulk=mean(Bulk_Density),TotalOM=mean(TotalOM),TotalN=mean(TotalN),CN= mean(CN),Cmin=mean(Cmin),`Cmin%`=mean(`Cmin%`), NH4=mean(NH4), NO3= mean(NO3), Nmin_Drysoil=mean(Nmin),`Nmin%`=mean(`Nmin%`), humidity=mean(Humidity), F_Mechanical=mean(`F_Mechanical actions`), soiltx=mean(DG_soilTx),`Stone:soil`=mean(`Stone:soil`) )        
+
+Bulk.1=lm(bulk~ Treatment+ TotalOM + Year_Bulk + Depth+ +TotalN+CN+Cmin+`Cmin%`+NO3+NH4+Nmin_Drysoil+`Nmin%`+humidity+F_Mechanical+soiltx+`Stone:soil`, data=Bulk_model)
+
+AIC_Bulk.1=step(Bulk.1,direction="both")
+
+Bulk.2=lm(bulk ~ `Nmin%` + humidity + soiltx, data=Bulk_model)
+drop1(Bulk.2,.~.,test="F")
+
+summary(Bulk.2)
 
 
+Bulk_model$res.Bulk.2=Bulk.2 $residuals 
+shapiro.test(Bulk_model$res.Bulk.2)
 
+ggplot(Bulk_model, aes(sample = res.Bulk.2)) +
+stat_qq() +
+stat_qq_line()+
+labs(title = "Normal Q-Q Plot of Stb_3.2")
+
+bptest(Bulk.2)
+
+```
