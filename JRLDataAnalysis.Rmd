@@ -35,17 +35,38 @@ flattenCorrMatrix <- function(cormat, pmat) {
 setwd("C:/Users/melis/OneDrive - Universiti Putra Malaysia/Documents/GitHub/23_JRL_towardsagroecology")
 
 
+
 Data <- read_csv("SALSADataset.csv")%>%
   select(-Direction)%>%
   na.omit()
 
+colnames(Data)
+
 Data$Year_Stability=as.factor(Data$Year_Stability)
 Data$Year_CN=as.factor(Data$Year_CN)
 Data$Year_Bulk=as.factor(Data$Year_CN)
+Data$Block=as.factor(Data$Block)
+Data$Year_covercrop=as.factor(Data$Year_covercrop)
+Data$Plot=as.factor(Data$Plot)
+Data$Depth=as.factor(Data$Depth)
+Data$Treatment=as.factor(Data$Treatment)
 
 str(Data)
 
 ```
+
+```{r soilpropeties, echo=FALSE}
+Stone_ratio= aov(`Stone:soil`~ Block , data=Data)
+anova(Stone_ratio)
+LSD_Stone_ratio= LSD.test(Stone_ratio, "Block")
+LSD_Stone_ratio
+
+SoilTX= aov(`DG_soilTx`~ Block, data=Data)
+anova(SoilTX)
+LSD_SoilTX= LSD.test(SoilTX, "Block")
+LSD_SoilTX
+```
+ 
 
 ## Stability Anova Test in 2019 and 2023
 
@@ -57,7 +78,7 @@ Stb=Data%>%
   arrange(Year_Stability, Treatment)%>%
   na.omit()
 
-Str_Stb= aov(Stability~Treatment+Year_Stability+Treatment*Year_Stability+Block+Plot, data=Stb)
+Str_Stb= aov(Stability~Treatment+Year_Stability+Treatment*Year_Stability+Block, data=Stb)
 anova(Str_Stb)
 
 #Based on Anova, the plot did not affect the soil stability. 
@@ -94,6 +115,8 @@ print(SigLetter_Stb_Block)
 
 #LSD Interaction between Treatment and Year
 LSD_Test_TrtStb= LSD.test(Str_Stb, c("Treatment", "Year_Stability"))
+
+
 SigLetter_TrtStb = LSD_Test_TrtStb$groups  %>%
   group_by(rownames(LSD_Test_TrtStb$groups)) %>%
   arrange(rownames(LSD_Test_TrtStb$groups))
@@ -118,7 +141,7 @@ Bulk=Data%>%
   arrange(Year_Bulk, Treatment)%>%
   na.omit()
 
-Ano_Bulk= aov(Bulk_Density~Treatment+Year_Bulk+Depth+Block+Plot+Treatment*Depth*Year_Bulk, data=Bulk)
+Ano_Bulk= aov(Bulk_Density~Treatment+Year_Bulk+Depth+Block+Treatment*Depth*Year_Bulk, data=Data)
 anova(Ano_Bulk)
 
 
@@ -192,26 +215,11 @@ print(SigLetter_TrtDepthYear)
 ```
 
 
-```{r soilpropeties, echo=FALSE}
-Stone_ratio= aov(`Stone:soil`~ Block, data=Data)
-anova(Stone_ratio)
-LSD_Stone_ratio= LSD.test(Stone_ratio, "Block")
-LSD_Stone_ratio
-
-SoilTX= aov(`DG_soilTx`~ Block, data=Data)
-anova(SoilTX)
-LSD_SoilTX= LSD.test(SoilTX, "Block")
-LSD_SoilTX
-```
-Each block have different soil texture and stone:soil ratio. 
-
-
-
 ## Corelation Test
 
 ```{r correlation, eval=FALSE, include=FALSE}
 X= Data %>% 
- select(10:24)
+ select(11:29)
 
 res2 <- rcorr(as.matrix(X))
 #extarct r &p
@@ -230,6 +238,8 @@ Correlation=rbind(Corrlation_test1,Corrlation_test2)%>%
   mutate(`P-value<0.05`= "significant")
 
 write.csv(Correlation,"C:/Users/melis/OneDrive - Universiti Putra Malaysia/Documents/GitHub/23_JRL_towardsagroecology/Correlation.csv",row.names=FALSE)
+
+
 ```
 
 ##Soil Stability Modelling. 
@@ -245,39 +255,37 @@ modelling=Data%>%
             
 modelling$Year_Stability=as.factor(modelling$Year_Stability)
 
-Stb_1=lm(Stability~ Treatment+ TotalOM + Year_Stability +TotalN+CN+Cmin+`Cmin%`+NO3+NH4+Nmin_Drysoil+`Nmin%`+humidity+F_Mechanical+soiltx+`Stone:soil`, data=modelling)
+Stb_1=lm(Stability~ Treatment+ TotalOM + Year_Stability +TotalN+CN+Cmin+`Cmin%`+ F_Mechanical+soiltx+`Stone:soil`, data=modelling)
 
 AIC_Stb_1=step(Stb_1,direction="both")
 
-Stb_2=lm(Stability ~ Treatment + TotalOM + Year_Stability + TotalN + CN + 
-    Cmin + `Cmin%` + NO3 + NH4 + Nmin_Drysoil + `Nmin%` + humidity, data=modelling)
+Stb_2=lm(Stability ~ Treatment + Year_Stability + Cmin + `Cmin%`, data=modelling)
 drop1(Stb_2,.~.,test="F")
 
-summary(Stb_2)
+Stb_3=lm(Stability ~ Treatment + Year_Stability + `Cmin%`, data=modelling)
+drop1(Stb_3,.~.,test="F")
+
+Stb_4=lm(Stability ~ Treatment + Year_Stability, data=modelling)
+drop1(Stb_4,.~.,test="F")
+
+summary(Stb_4)
 
 ```
 
-**Soil Stability multiple linear model:**
-
-*lm(formula = Stability ~ Treatment + TotalOM + Year_Stability + 
-    TotalN + CN + Cmin + `Cmin%` + NO3 + NH4 + Nmin_Drysoil + 
-    `Nmin%` + humidity, data = Stability_model)*
-
-Adjusted R-squared:  **0.9466**
 
 
 **Model Assumption Check**
 
 ```{r normality, echo=FALSE, message=FALSE, warning=FALSE}
-modelling$res.Stb_2=Stb_2 $residuals 
-shapiro.test(modelling$res.Stb_2)
+modelling$res.Stb_4=Stb_4 $residuals 
+shapiro.test(modelling$res.Stb_4)
 ```
 *It is normal*
 
 2. Homoscedasticity Test
 
 ```{r Homoscedasticity, echo=FALSE, message=FALSE, warning=FALSE}
-bptest(Stb_2)
+bptest(Stb_4)
 ```
 It is homoscedasticity. 
 
@@ -313,5 +321,512 @@ stat_qq_line()+
 labs(title = "Normal Q-Q Plot of Stb_3.2")
 
 bptest(Bulk.2)
+
+```
+
+Stb_2=lm(Stability ~ Treatment + TotalOM + Year_Stability + TotalN + CN + Cmin + `Cmin%` + NO3 + NH4 + Nmin_Drysoil + `Nmin%` + humidity, data=modelling)
+
+
+##TotalOM
+
+```{r TotalOM}
+colnames(Data)
+
+Total_OM= lm(TotalOM~Treatment+Block+Year_CN+Treatment*Year_CN, data=Data)
+anova(Total_OM)
+
+#LSD Year
+TotalOM_Year= LSD.test(Total_OM,"Year_CN")
+TotalOM_Year
+
+
+#LSD Treatment (Overall performance)
+TotalOM_Trt= LSD.test(Total_OM,"Treatment")
+TotalOM_Trt
+
+
+#LSD Interaction between Treatment and Year
+LSD_TotalOM_TrtYear= LSD.test(Total_OM, c("Treatment", "Year_CN"))
+LSD_TotalOM_TrtYear
+
+SigLetter_TotalOM_TrtYear = LSD_TotalOM_TrtYear$groups  %>%
+  group_by(rownames(LSD_TotalOM_TrtYear$groups)) %>%
+  arrange(rownames(LSD_TotalOM_TrtYear$groups))
+names(SigLetter_TotalOM_TrtYear)[3] = "Total OM: Interaction between Treatment and Year"
+print(SigLetter_TotalOM_TrtYear)
+
+
+Valuemax_TotalOM_TrtStb=Data%>%
+  group_by(Treatment,Year_CN)%>%
+  summarise(max_value=max(TotalOM))
+
+p1=ggplot(Data, aes(x=Treatment, y=TotalOM,fill=Year_CN))+ geom_boxplot()+geom_text(data=Valuemax_TotalOM_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_TotalOM_TrtYear$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(legend.position="bottom")
+```
+
+##TotalN
+
+```{r TotalN}
+colnames(Data)
+
+TotalN= lm(TotalN~Treatment+Block+Year_CN+Treatment*Year_CN, data=Data)
+anova(TotalN)
+
+#LSD Year
+TotalN_Year= LSD.test(TotalN,"Year_CN")
+TotalN_Year
+
+
+#LSD Treatment (Overall performance)
+TotalN_Trt= LSD.test(TotalN,"Treatment")
+TotalN_Trt
+
+
+#LSD Interaction between Treatment and Year
+LSD_TotalN_TrtYear= LSD.test(TotalN, c("Treatment", "Year_CN"))
+LSD_TotalN_TrtYear
+
+SigLetter_TotalN_TrtYear = LSD_TotalN_TrtYear$groups  %>%
+  group_by(rownames(LSD_TotalN_TrtYear$groups)) %>%
+  arrange(rownames(LSD_TotalN_TrtYear$groups))
+names(SigLetter_TotalN_TrtYear)[3] = "Total N: Interaction between Treatment and Year"
+print(SigLetter_TotalN_TrtYear)
+
+Valuemax_TotalN_TrtStb=Data%>%
+  group_by(Treatment,Year_CN)%>%
+  summarise(max_value=max(TotalN))
+
+p2=ggplot(Data, aes(x=Treatment, y=TotalN,fill=Year_CN))+ geom_boxplot()+geom_text(data=Valuemax_TotalN_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_TotalN_TrtYear$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(legend.position="bottom")
+```
+
+##CN Ratio
+
+```{r CN}
+colnames(Data)
+
+CN= lm(CN~Treatment+Block+Year_CN+Treatment*Year_CN, data=Data)
+anova(CN)
+
+#LSD Year
+CN_Year= LSD.test(CN,"Year_CN")
+CN_Year
+
+
+#LSD Treatment (Overall performance)
+CN_Trt= LSD.test(CN,"Treatment")
+CN_Trt
+
+
+#LSD Interaction between Treatment and Year
+LSD_CN_TrtYear= LSD.test(CN, c("Treatment", "Year_CN"))
+LSD_CN_TrtYear
+
+SigLetter_CN_TrtYear = LSD_CN_TrtYear$groups  %>%
+  group_by(rownames(LSD_CN_TrtYear$groups)) %>%
+  arrange(rownames(LSD_CN_TrtYear$groups))
+names(SigLetter_CN_TrtYear)[3] = "CN: Interaction between Treatment and Year"
+print(SigLetter_CN_TrtYear)
+
+Valuemax_CN_TrtStb=Data%>%
+  group_by(Treatment,Year_CN)%>%
+  summarise(max_value=max(CN))
+
+p3=ggplot(Data, aes(x=Treatment, y=CN,fill=Year_CN))+ geom_boxplot()+geom_text(data=Valuemax_CN_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_CN_TrtYear$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(legend.position="bottom")
+```
+
+## Cmin
+
+```{r Cmin}
+colnames(Data)
+
+Cmin= lm(Cmin~Treatment+Block+Year_CN+Treatment*Year_CN, data=Data)
+anova(Cmin)
+
+#LSD Year
+Cmin_Year= LSD.test(Cmin,"Year_CN")
+Cmin_Year
+
+
+#LSD Treatment (Overall performance)
+Cmin_Trt= LSD.test(Cmin,"Treatment")
+Cmin_Trt
+
+
+#LSD Interaction between Treatment and Year
+LSD_Cmin_TrtYear= LSD.test(Cmin, c("Treatment", "Year_CN"))
+LSD_Cmin_TrtYear
+
+SigLetter_Cmin_TrtYear = LSD_Cmin_TrtYear$groups  %>%
+  group_by(rownames(LSD_Cmin_TrtYear$groups)) %>%
+  arrange(rownames(LSD_Cmin_TrtYear$groups))
+names(SigLetter_Cmin_TrtYear)[3] = "Cmin: Interaction between Treatment and Year"
+print(SigLetter_Cmin_TrtYear)
+
+Valuemax_Cmin_TrtStb=Data%>%
+  group_by(Treatment,Year_CN)%>%
+  summarise(max_value=max(Cmin))
+
+p4=ggplot(Data, aes(x=Treatment, y=Cmin,fill=Year_CN))+ geom_boxplot()+geom_text(data=Valuemax_Cmin_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_Cmin_TrtYear$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(legend.position="bottom")
+```
+
+##Cmin%
+
+```{r Cminpgc}
+Cminpcg= lm(`Cmin%`~Treatment+Block+Year_CN+Treatment*Year_CN, data=Data)
+anova(Cminpcg)
+
+#LSD Year
+Cminpcg_Year= LSD.test(Cminpcg,"Year_CN")
+Cminpcg_Year
+
+
+#LSD Treatment (Overall performance)
+Cminpcg_Trt= LSD.test(Cminpcg,"Treatment")
+Cminpcg_Trt
+
+
+#LSD Interaction between Treatment and Year
+LSD_Cminpcg_TrtYear= LSD.test(Cminpcg, c("Treatment", "Year_CN"))
+LSD_Cminpcg_TrtYear
+
+SigLetter_Cminpcg_TrtYear = LSD_Cminpcg_TrtYear$groups  %>%
+  group_by(rownames(LSD_Cminpcg_TrtYear$groups)) %>%
+  arrange(rownames(LSD_Cminpcg_TrtYear$groups))
+names(SigLetter_Cminpcg_TrtYear)[3] = "Cmin%: Interaction between Treatment and Year"
+print(SigLetter_Cminpcg_TrtYear)
+
+Valuemax_Cminpcg_TrtStb=Data%>%
+  group_by(Treatment,Year_CN)%>%
+  summarise(max_value=max(`Cmin%`))
+
+p5=ggplot(Data, aes(x=Treatment, y=`Cmin%`,fill=Year_CN))+ geom_boxplot()+geom_text(data=Valuemax_Cminpcg_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_Cminpcg_TrtYear$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(legend.position="bottom")
+```
+
+
+
+
+##NO3
+```{r NO3}
+
+NO3= lm(NO3~Treatment+Block+Year_CN+Treatment*Year_CN, data=Data)
+anova(NO3)
+
+#LSD Year
+NO3_Year= LSD.test(NO3,"Year_CN")
+NO3_Year
+
+
+#LSD Treatment (Overall performance)
+NO3_Trt= LSD.test(NO3,"Treatment")
+NO3_Trt
+
+
+#LSD Interaction between Treatment and Year
+LSD_NO3_TrtYear= LSD.test(NO3, c("Treatment", "Year_CN"))
+LSD_NO3_TrtYear
+
+SigLetter_NO3_TrtYear = LSD_NO3_TrtYear$groups  %>%
+  group_by(rownames(LSD_NO3_TrtYear$groups)) %>%
+  arrange(rownames(LSD_NO3_TrtYear$groups))
+names(SigLetter_NO3_TrtYear)[3] = "NO3: Interaction between Treatment and Year"
+print(SigLetter_NO3_TrtYear)
+
+Valuemax_NO3_TrtStb=Data%>%
+  group_by(Treatment,Year_CN)%>%
+  summarise(max_value=max(`NO3`))
+
+p6=ggplot(Data, aes(x=Treatment, y=`NO3`,fill=Year_CN))+ geom_boxplot()+geom_text(data=Valuemax_NO3_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_NO3_TrtYear$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(legend.position="bottom")
+```
+
+##NH4
+```{r NH4}
+colnames(Data)
+
+NH4= lm(NH4~Treatment+Block+Year_CN+Treatment*Year_CN, data=Data)
+anova(NH4)
+
+#LSD Year
+NH4_Year= LSD.test(NH4,"Year_CN")
+NH4_Year
+
+
+#LSD Treatment (Overall performance)
+NH4_Trt= LSD.test(NH4,"Treatment")
+NH4_Trt
+
+
+#LSD Interaction between Treatment and Year
+LSD_NH4_TrtYear= LSD.test(NH4, c("Treatment", "Year_CN"))
+LSD_NH4_TrtYear
+
+SigLetter_NH4_TrtYear = LSD_NH4_TrtYear$groups  %>%
+  group_by(rownames(LSD_NH4_TrtYear$groups)) %>%
+  arrange(rownames(LSD_NH4_TrtYear$groups))
+names(SigLetter_NH4_TrtYear)[3] = "NH4: Interaction between Treatment and Year"
+print(SigLetter_NH4_TrtYear)
+
+Valuemax_NH4_TrtStb=Data%>%
+  group_by(Treatment,Year_CN)%>%
+  summarise(max_value=max(NH4))
+
+p7=ggplot(Data, aes(x=Treatment, y=NH4,fill=Year_CN))+ geom_boxplot()+geom_text(data=Valuemax_NO3_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_NH4_TrtYear$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(legend.position="bottom")
+```
+
+##Nmin
+```{r Nmin}
+colnames(Data)
+
+Nmin= lm(Nmin~Treatment+Block+Year_CN+Treatment*Year_CN, data=Data)
+anova(Nmin)
+
+#LSD Year
+Nmin_Year= LSD.test(Nmin,"Year_CN")
+Nmin_Year
+
+
+#LSD Treatment (Overall performance)
+Nmin_Trt= LSD.test(Nmin,"Treatment")
+Nmin_Trt
+
+
+#LSD Interaction between Treatment and Year
+LSD_Nmin_TrtYear= LSD.test(Nmin, c("Treatment", "Year_CN"))
+LSD_Nmin_TrtYear
+
+SigLetter_Nmin_TrtYear = LSD_Nmin_TrtYear$groups  %>%
+  group_by(rownames(LSD_Nmin_TrtYear$groups)) %>%
+  arrange(rownames(LSD_Nmin_TrtYear$groups))
+names(SigLetter_Nmin_TrtYear)[3] = "Nmin: Interaction between Treatment and Year"
+print(SigLetter_NH4_TrtYear)
+
+Valuemax_Nmin_TrtStb=Data%>%
+  group_by(Treatment,Year_CN)%>%
+  summarise(max_value=max(Nmin))
+
+p8=ggplot(Data, aes(x=Treatment, y=Nmin,fill=Year_CN))+ geom_boxplot()+geom_text(data=Valuemax_Nmin_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_Nmin_TrtYear$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(legend.position="bottom")
+```
+
+##Soil moisture
+```{r moisture}
+colnames(Data)
+
+Humidity= lm(Humidity~Treatment+Block+Year_CN+Treatment*Year_CN, data=Data)
+anova(Humidity)
+
+#LSD Year
+Humidity_Year= LSD.test(Humidity,"Year_CN")
+Humidity_Year
+
+
+#LSD Treatment (Overall performance)
+Humidity_Trt= LSD.test(Humidity,"Treatment")
+Humidity_Trt
+
+
+#LSD Interaction between Treatment and Year
+LSD_Humidity_TrtYear= LSD.test(Humidity, c("Treatment", "Year_CN"))
+LSD_Humidity_TrtYear
+
+SigLetter_Humidity_TrtYear = LSD_Humidity_TrtYear$groups  %>%
+  group_by(rownames(LSD_Humidity_TrtYear$groups)) %>%
+  arrange(rownames(LSD_Humidity_TrtYear$groups))
+names(SigLetter_Humidity_TrtYear)[3] = "Humidity: Interaction between Treatment and Year"
+print(SigLetter_NH4_TrtYear)
+
+Valuemax_Humidity_TrtStb=Data%>%
+  group_by(Treatment,Year_CN)%>%
+  summarise(max_value=max(Humidity))
+
+p9=ggplot(Data, aes(x=Treatment, y=Humidity,fill=Year_CN))+ geom_boxplot()+geom_text(data=Valuemax_Humidity_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_Humidity_TrtYear$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(legend.position="bottom")
+
+```
+
+##Nmin%
+
+```{r Nminpcg}
+Nminpcg= lm(`Nmin%`~Treatment+Block+Year_CN+Treatment*Year_CN, data=Data)
+anova(Cminpcg)
+
+#LSD Year
+Nminpcg_Year= LSD.test(Cminpcg,"Year_CN")
+Nminpcg_Year
+
+
+#LSD Treatment (Overall performance)
+Nminpcg_Trt= LSD.test(Cminpcg,"Treatment")
+Nminpcg_Trt
+
+
+#LSD Interaction between Treatment and Year
+LSD_Nminpcg_TrtYear= LSD.test(Nminpcg, c("Treatment", "Year_CN"))
+LSD_Nminpcg_TrtYear
+
+SigLetter_Nminpcg_TrtYear = LSD_Nminpcg_TrtYear$groups  %>%
+  group_by(rownames(LSD_Nminpcg_TrtYear$groups)) %>%
+  arrange(rownames(LSD_Nminpcg_TrtYear$groups))
+names(SigLetter_Nminpcg_TrtYear)[3] = "Cmin%: Interaction between Treatment and Year"
+print(SigLetter_Nminpcg_TrtYear)
+
+Valuemax_Nminpcg_TrtStb=Data%>%
+  group_by(Treatment,Year_CN)%>%
+  summarise(max_value=max(`Nmin%`))
+
+p10=ggplot(Data, aes(x=Treatment, y=`Nmin%`,fill=Year_CN))+ geom_boxplot()+geom_text(data=Valuemax_Nminpcg_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_Nminpcg_TrtYear$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(legend.position="bottom")
+
+
+plot_grid(
+p1,p2,p3,
+nrow = 1, ncol = 3)
+
+plot_grid(
+p4,p5,p6,
+nrow = 1, ncol = 3)
+
+plot_grid(
+p7,p8,p10,p9,
+nrow = 1, ncol = 4)
+```
+
+##Cover_DM_t_ha
+
+```{r Cover_DM_t_ha}
+colnames(Data)
+
+Cover_DM_t_ha= lm(Cover_DM_t_ha~Treatment+Block+Year_covercrop+Treatment*Year_covercrop, data=Data)
+anova(Cover_DM_t_ha)
+
+#LSD Year
+Cover_DM_t_ha_Year= LSD.test(Cover_DM_t_ha,"Year_covercrop")
+Cover_DM_t_ha_Year
+
+
+#LSD Treatment (Overall performance)
+Cover_DM_t_ha_Trt= LSD.test(Cover_DM_t_ha,"Treatment")
+Cover_DM_t_ha_Trt
+
+
+#LSD Interaction between Treatment and Year
+LSD_Cover_DM_t_ha_TrtYear= LSD.test(Cover_DM_t_ha, c("Treatment", "Year_covercrop"))
+LSD_Cover_DM_t_ha_TrtYear
+
+SigLetter_Cover_DM_t_ha_TrtYear = LSD_Cover_DM_t_ha_TrtYear$groups  %>%
+  group_by(rownames(LSD_Cover_DM_t_ha_TrtYear$groups)) %>%
+  arrange(rownames(LSD_Cover_DM_t_ha_TrtYear$groups))
+names(SigLetter_Cover_DM_t_ha_TrtYear)[3] = "Cover_DM_t_ha: Interaction between Treatment and Year"
+print(SigLetter_Cover_DM_t_ha_TrtYear)
+
+Valuemax_Cover_DM_t_ha_TrtStb=Data%>%
+  group_by(Treatment,Year_covercrop)%>%
+  summarise(max_value=max(Cover_DM_t_ha))
+
+p11= ggplot(Data, aes(x=Treatment, y=Cover_DM_t_ha,fill=Year_covercrop))+ geom_boxplot()+geom_text(data=Valuemax_Cover_DM_t_ha_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_Cover_DM_t_ha_TrtYear$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(legend.position="bottom")
+```
+
+##Cover_potRestit_N
+
+```{r Cover_potRestit_N}
+colnames(Data)
+
+Cover_potRestit_N= lm(Cover_potRestit_N~Treatment+Block+Year_covercrop+Treatment*Year_covercrop, data=Data)
+anova(Cover_potRestit_N)
+
+#LSD Year
+Cover_potRestit_N_Year= LSD.test(Cover_potRestit_N,"Year_covercrop")
+Cover_potRestit_N_Year
+
+
+#LSD Treatment (Overall performance)
+Cover_potRestit_N_Trt= LSD.test(Cover_potRestit_N,"Treatment")
+Cover_potRestit_N_Trt
+
+
+#LSD Interaction between Treatment and Year
+LSD_Cover_potRestit_N_TrtYear= LSD.test(Cover_potRestit_N, c("Treatment", "Year_covercrop"))
+LSD_Cover_DM_t_ha_TrtYear
+
+SigLetter_Cover_potRestit_N_TrtYear = LSD_Cover_potRestit_N_TrtYear$groups  %>%
+  group_by(rownames(LSD_Cover_potRestit_N_TrtYear$groups)) %>%
+  arrange(rownames(LSD_Cover_potRestit_N_TrtYear$groups))
+names(SigLetter_Cover_potRestit_N_TrtYear)[3] = "Cover_potRestit_N: Interaction between Treatment and Year"
+print(SigLetter_Cover_potRestit_N_TrtYear)
+
+Valuemax_Cover_potRestit_N_TrtStb=Data%>%
+  group_by(Treatment,Year_covercrop)%>%
+  summarise(max_value=max(Cover_potRestit_N))
+
+p12=ggplot(Data, aes(x=Treatment, y=Cover_potRestit_N,fill=Year_covercrop))+ geom_boxplot()+geom_text(data=Valuemax_Cover_potRestit_N_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_Cover_potRestit_N_TrtYear$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(legend.position="bottom")
+```
+
+##Cover_mesRestit_N
+
+```{r Cover_mesRestit_N}
+colnames(Data)
+
+Cover_mesRestit_N= lm(Cover_mesRestit_N~Treatment+Block+Year_covercrop+Treatment*Year_covercrop, data=Data)
+anova(Cover_mesRestit_N)
+
+#LSD Year
+Cover_mesRestit_N_Year= LSD.test(Cover_mesRestit_N,"Year_covercrop")
+Cover_mesRestit_N_Year
+
+
+#LSD Treatment (Overall performance)
+Cover_mesRestit_N_Trt= LSD.test(Cover_mesRestit_N,"Treatment")
+Cover_mesRestit_N_Trt
+
+
+#LSD Interaction between Treatment and Year
+LSD_Cover_mesRestit_N_TrtYear= LSD.test(Cover_mesRestit_N, c("Treatment", "Year_covercrop"))
+LSD_Cover_DM_t_ha_TrtYear
+
+SigLetter_Cover_mesRestit_N_TrtYear = LSD_Cover_mesRestit_N_TrtYear$groups  %>%
+  group_by(rownames(LSD_Cover_mesRestit_N_TrtYear$groups)) %>%
+  arrange(rownames(LSD_Cover_mesRestit_N_TrtYear$groups))
+names(SigLetter_Cover_mesRestit_N_TrtYear)[3] = "Cover_mesRestit_N: Interaction between Treatment and Year"
+print(SigLetter_Cover_mesRestit_N_TrtYear)
+
+Valuemax_Cover_mesRestit_N_TrtStb=Data%>%
+  group_by(Treatment,Year_covercrop)%>%
+  summarise(max_value=max(Cover_mesRestit_N))
+
+p13=ggplot(Data, aes(x=Treatment, y=Cover_mesRestit_N,fill=Year_covercrop))+ geom_boxplot()+geom_text(data=Valuemax_Cover_mesRestit_N_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_Cover_mesRestit_N_TrtYear$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(legend.position="bottom")
+```
+
+##Cover_mesRestit_N
+
+```{r Cover_mesRestit_N}
+colnames(Data)
+
+Cover_mesRestit_C= lm(Cover_mesRestit_C~Treatment+Block+Year_covercrop+Treatment*Year_covercrop, data=Data)
+anova(Cover_mesRestit_C)
+
+#LSD Year
+Cover_mesRestit_C_Year= LSD.test(Cover_mesRestit_C,"Year_covercrop")
+Cover_mesRestit_C_Year
+
+
+#LSD Treatment (Overall performance)
+Cover_mesRestit_C_Trt= LSD.test(Cover_mesRestit_C,"Treatment")
+Cover_mesRestit_C_Trt
+
+
+#LSD Interaction between Treatment and Year
+LSD_Cover_mesRestit_C_TrtYear= LSD.test(Cover_mesRestit_C, c("Treatment", "Year_covercrop"))
+LSD_Cover_DM_t_ha_TrtYear
+
+SigLetter_Cover_mesRestit_C_TrtYear = LSD_Cover_mesRestit_C_TrtYear$groups  %>%
+  group_by(rownames(LSD_Cover_mesRestit_C_TrtYear$groups)) %>%
+  arrange(rownames(LSD_Cover_mesRestit_C_TrtYear$groups))
+names(SigLetter_Cover_mesRestit_C_TrtYear)[3] = "Cover_mesRestit_C: Interaction between Treatment and Year"
+print(SigLetter_Cover_mesRestit_C_TrtYear)
+
+Valuemax_Cover_mesRestit_C_TrtStb=Data%>%
+  group_by(Treatment,Year_covercrop)%>%
+  summarise(max_value=max(Cover_mesRestit_C))
+
+p14=ggplot(Data, aes(x=Treatment, y=Cover_mesRestit_C,fill=Year_covercrop))+ geom_boxplot()+geom_text(data=Valuemax_Cover_mesRestit_C_TrtStb, aes(x=Treatment, y=0.1+max_value, label=SigLetter_Cover_mesRestit_C_TrtYear$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(legend.position="bottom")
+
+plot_grid(
+p11,p12,p13,p14,
+nrow = 1, ncol = 4)
 
 ```
