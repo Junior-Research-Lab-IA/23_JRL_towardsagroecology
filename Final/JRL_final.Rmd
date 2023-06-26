@@ -1,0 +1,442 @@
+---
+title: "SALSA_JRL Data Analysis Final Version "
+output: html_document
+date: "2023-06-25"
+editor_options: 
+  chunk_output_type: console
+---
+```{r package, include=FALSE}
+library(readr)
+library(agricolae)
+library(ggplot2)
+library(tidyverse)
+library(cowplot)
+library(GGally)
+library(ggpattern)
+library(leaps)
+library(Hmisc)
+library(corrplot)
+library(lmtest)
+library(tinytex)
+library(equatiomatic)
+library(ggpubr)
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+    )
+}
+```
+
+```{r workingdirectory, include=FALSE}
+setwd("C:/Users/melis/OneDrive - Universiti Putra Malaysia/Documents/GitHub/23_JRL_towardsagroecology")
+```
+
+# Block Effect 
+
+Note:
+- stone:soil ratio collected in 2020 and 2023
+These soil physical properties cant be alter in short period. 
+  obs stone:soil: 3 block x 3 trt x 3 plots X 2 years=  54 
+  
+- Soil texture collected in 2019 
+  obs stone:soil: 3 block x 3 trt x 3 plots =  27
+
+
+```{r datainput, echo=FALSE}
+
+Stability <- read_csv("Stability.csv", col_types = cols(Year_Covercrop = col_factor(levels = c()), 
+    Year_Stability = col_factor(levels = c()), 
+    Year_CN = col_factor(levels = c()), Trt = col_factor(levels = c()), 
+    Block = col_factor(levels = c()), Stability = col_number(), 
+    TotalOM = col_number(), soiltx = col_factor(levels = c())))
+```
+
+## Stone soil ratio in 2019
+
+```{r stone_2019, echo=FALSE}
+
+Stone_19=which(Stability$Year_Stability=="2019")
+
+Stone_19=Stability[Stone_19,]
+
+Stone_19.1= lm(Stone_soil~Trt+Block, data=Stone_19)
+anova(Stone_19.1)
+LSD_Stone_19.1=LSD.test(Stone_19.1,"Block")
+LSD_Stone_19.1
+
+SigLetter_LSD_Stone_19.1 = LSD_Stone_19.1$groups  %>%
+  group_by(rownames(LSD_Stone_19.1$groups)) %>%
+  arrange(rownames(LSD_Stone_19.1$groups))
+
+Valuemax_LSD_Stone_19.1=Stone_19 %>%
+  group_by(Block)%>%
+  summarise(max_value=mean(Stone_soil))
+
+
+S1=ggplot(Stone_19, aes(x=Block, Stone_soil))+ geom_boxplot()+geom_text(data=Valuemax_LSD_Stone_19.1, aes(x=Block, y=0.1+max_value, label=SigLetter_LSD_Stone_19.1$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(plot.title = element_text(hjust = 0.5),legend.position="bottom")+ ylab("Stone:soil ratio \n 2019")+ xlab("Block")+ theme(
+axis.title.x = element_text(size=14),
+axis.title.y = element_text(size=14)
+)
+```
+
+
+## Stone soil ratio in 2023
+
+
+```{r stone_2023, echo=FALSE}
+Stone_23=which(Stability$Year_Stability=="2023")
+
+Stone_23=Stability[Stone_23,]
+
+
+Stone_23.1= lm(Stone_soil~Trt+Block, data=Stone_23)
+anova(Stone_23.1)
+LSD_Stone_23.1=LSD.test(Stone_23.1,"Block")
+LSD_Stone_23.1
+
+SigLetter_LSD_Stone_23.1 = LSD_Stone_23.1$groups  %>%
+  group_by(rownames(LSD_Stone_23.1$groups)) %>%
+  arrange(rownames(LSD_Stone_23.1$groups))
+
+Valuemax_LSD_Stone_23.1=Stone_23 %>%
+  group_by(Block)%>%
+  summarise(max_value=mean(Stone_soil))
+
+
+S2=ggplot(Stone_23, aes(x=Block, Stone_soil))+ geom_boxplot()+geom_text(data=Valuemax_LSD_Stone_23.1, aes(x=Block, y=0.1+max_value, label=SigLetter_LSD_Stone_23.1$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(plot.title = element_text(hjust =0.5),legend.position="bottom")+ ylab("Stone:soil ratio \n 2023")+ xlab("Block")+ theme(
+axis.title.x = element_text(size=14),
+axis.title.y = element_text(size=14)
+)
+
+
+LSD_Stone_23.2=LSD.test(Stone_23.1,"Trt")
+LSD_Stone_23.2
+
+SigLetter_LSD_Stone_23.2 = LSD_Stone_23.2$groups  %>%
+  group_by(rownames(LSD_Stone_23.2$groups)) %>%
+  arrange(rownames(LSD_Stone_23.2$groups))
+
+Valuemax_LSD_Stone_23.2=Stone_23 %>%
+  group_by(Trt)%>%
+  summarise(max_value=mean(Stone_soil))
+
+
+S3=ggplot(Stone_23, aes(x=Trt, Stone_soil))+ geom_boxplot()+geom_text(data=Valuemax_LSD_Stone_23.2, aes(x=Trt, y=0.1+max_value, label=SigLetter_LSD_Stone_23.2$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(plot.title = element_text(hjust =0.5),legend.position="bottom")+ ylab("Stone:soil ratio \n 2023")+ xlab("Treatment")+ theme(
+axis.title.x = element_text(size=14),
+axis.title.y = element_text(size=14)
+)
+```
+
+
+## Soil texture in 2019
+
+
+```{r tx_2019, echo=FALSE}
+
+list_tx=which(Stability$Year_Stability=="2019"&Stability$Plot=="1")
+
+tx=Stability[list_tx,]
+
+dgtx= lm(dgtx~Block+Trt, data=tx)
+anova(dgtx)
+
+
+S4=ggplot(tx, aes(x=Block, y=dgtx))+ geom_boxplot()+ ylab("Geometric mean of \n particle size distribution \n  (dg)\n 2019")+ xlab("Block")+ theme(
+axis.title.x = element_text(size=14),
+axis.title.y = element_text(size=14)
+)
+
+
+plot_grid(
+S4,S1,S2,S3,
+nrow = 2,ncol=2)
+
+
+```
+
+
+
+# Soil stability in 2019& 2023
+- obs soil stability in 2019: 3 block x 3 trt x 3 plots=27 
+- obs soil stability in 2023: 3 block x 3 trt x 3 plots=27 
+
+## Soil stability in 2019
+
+
+```{r Stability_2019, echo=FALSE}
+#focus in 2019
+list_stb2019=which(Stability$Year_Stability=="2019")
+
+stb2019=Stability[list_stb2019,]
+stb.19= lm(Stability~Trt+Block, data=stb2019)
+anova(stb.19)
+
+lsd_stb.19=LSD.test(stb.19,"Trt")
+lsd_stb.19
+```
+
+
+## Soil stability in 2023
+
+
+```{r Stability_2023, echo=FALSE}
+list_stb2023=which(Stability$Year_Stability=="2023")
+
+stb2023=Stability[list_stb2023,]
+
+stb.23= lm(Stability~Trt+Block, data=stb2023)
+anova(stb.23)
+
+lsd_stb.23=LSD.test(stb.23,"Trt")
+lsd_stb.23
+```
+
+
+## Soil stability in 2019 2023
+
+
+```{r Stability, echo=FALSE}
+stb.1= lm(Stability~Trt+Block, data=Stability)
+stb.2=lm(Stability~Trt+Block+Year_Stability, data=Stability)
+stb.3=lm(Stability~Trt+Block+Year_Stability+Trt*Year_Stability, data=Stability)
+
+anova(stb.3)
+
+lsd_stb.inter=LSD.test(stb.3,c("Trt","Year_Stability"))
+lsd_stb.inter
+
+SigLetter_lsd_stb.inter = lsd_stb.inter$groups  %>%
+  group_by(rownames(lsd_stb.inter$groups)) %>%
+  arrange(rownames(lsd_stb.inter$groups))
+
+Valuemax_lsd_stb.inter=Stability %>%
+  group_by(Trt,Year_Stability)%>%
+  summarise(max_value=mean(Stability))
+
+
+ggplot(Stability, aes(x=Trt, y=Stability,fill=Year_Stability))+ geom_boxplot()+geom_text(data=Valuemax_lsd_stb.inter, aes(x=Trt, y=0.3+max_value, label=SigLetter_lsd_stb.inter$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(plot.title = element_text(hjust =0.5),legend.position="bottom")+ ylab("Soil Stability (MWD)")+ xlab("Treatment")
+```
+
+
+### The normal distribution of soil stability in 2019 and 2023
+- obs soil stability in 2019 $ 2023: 3 block x 3 trt x 3 plots x 2 years=54
+
+
+```{r stb distribution, echo=FALSE}
+
+
+list_stb_t=which(Stability$Trt=="T_Viti")
+stb_t=Stability[list_stb_t,]
+
+
+list_stb_A=which(Stability$Trt=="A_Viti")
+stb_A=Stability[list_stb_A,]
+
+
+list_stb_D=which(Stability$Trt=="D_Viti")
+stb_D=Stability[list_stb_D,]
+
+
+
+d1=ggdensity(stb_t, x = "Stability", fill = "lightgray", title = "T_Viti") + ylab("Number of Data Points")+ xlab("Stability")+ ylim(0, 2.5)
+d2=ggdensity(stb_A, x = "Stability", fill = "lightgray", title = "A_Viti") + ylab("Number of Data Points")+ xlab("Stability")+ ylim(0, 2.5)
+d3=ggdensity(stb_D, x = "Stability", fill = "lightgray", title = "D_Viti") + ylab("Number of Data Points")+ xlab("Stability")+ ylim(0, 2.5)
+
+plot_grid(
+  d1,d2,d3,
+  nrow=1,ncol=3
+)
+
+```
+
+
+
+# Total Organic Matter in 2022
+obs=3 trts x 3 blocks x 3 plots =27
+
+
+```{r stb_Tom, echo=FALSE}
+List.stb_tom=which(Stability$Year_Stability=="2023")
+
+stb_tom=Stability[List.stb_tom,]
+
+
+c1=ggscatter(stb_tom, x = "TotalOM", y = "Stability", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Total organic matter(%) \n in 2022", ylab = "Soil stability (MWD) \n in 2023")
+
+c2=ggscatter(stb_tom, x = "CN", y = "Stability", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "C:N ratio in 2022", ylab = "Soil stability (MWD)\n in 2023")
+
+plot_grid(
+  c1,c2,
+  nrow=1,ncol=2
+)
+
+tom1=lm(TotalOM~Trt+Block, data=stb_tom)
+anova(tom1)
+
+lsd_OM=LSD.test(tom1,"Trt")
+lsd_OM
+
+SigLetter_OM = lsd_OM$groups  %>%
+  group_by(rownames(lsd_OM$groups)) %>%
+  arrange(rownames(lsd_OM$groups))
+
+Valuemax_lsd_OM=stb_tom %>%
+  group_by(Trt)%>%
+  summarise(max_value=mean(TotalOM))
+lsd_OM=LSD.test(tom1,"Trt")
+
+
+lsd_OM_b=LSD.test(tom1,"Block")
+
+
+ggplot(stb_tom, aes(x=Trt, y=TotalOM))+ geom_boxplot()+geom_text(data=Valuemax_lsd_OM, aes(x=Trt, y=0.1+max_value, label=SigLetter_OM$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(plot.title = element_text(hjust = 0.5),legend.position="bottom")+ ylab("Total Organic Matter (%)\n 2022")+ xlab("Treatment")
+```
+
+# CN Ratio in 2022
+obs=3 trts x 3 blocks x 3 plots =27
+
+
+```{r CN}
+CN=lm(CN~Trt+Block, data=stb_tom)
+anova(CN)
+
+lsd_CN=LSD.test(CN,"Trt")
+lsd_CN
+
+SigLetter_CN= lsd_CN$groups  %>%
+  group_by(rownames(lsd_CN$groups)) %>%
+  arrange(rownames(lsd_CN$groups))
+
+Valuemax_lsd_CN=stb_tom %>%
+  group_by(Trt)%>%
+  summarise(max_value=mean(CN))
+
+
+ggplot(stb_tom, aes(x=Trt, y=CN))+ geom_boxplot()+geom_text(data=Valuemax_lsd_CN, aes(x=Trt, y=0.1+max_value, label=SigLetter_CN$groups),position = position_dodge(width = 0.9),vjust = -(0.5))+theme(plot.title = element_text(hjust = 0.5),legend.position="bottom")+ ylab("C:N ratio \n 2022")+ xlab("Treatment")
+
+```
+
+# The parameters correlation on Pearson test 
+
+```{r cor, echo=FALSE}
+Y= stb_tom %>% 
+ select(7:25)%>% 
+  select(-dgtx,-Graminoid_CR,-soiltx)
+
+res2 <- rcorr(as.matrix(Y))
+#extarct r &p
+correlation_r = res2$r
+correlation_p = res2$P
+
+Corrlation_test1=flattenCorrMatrix(res2$r, res2$P)%>%
+  filter(p<=0.05,cor<=-0.5)
+Corrlation_test2=flattenCorrMatrix(res2$r, res2$P)%>%
+  filter(p<=0.05,cor>=0.5)
+
+#Select p<=0.05,cor>=0.5 or cor<=-0.5
+Correlation=rbind(Corrlation_test1,Corrlation_test2)
+
+print(Correlation)
+```
+
+# The normal distribution changes of Soil stability in 2023
+
+```{r normality_stb, echo=FALSE}
+changes <- read_csv("Parameters_changes.csv")
+
+changes$Block=as.factor(changes$Block)
+changes$Trt=as.factor(changes$Trt)
+
+list_changes_t=which(changes$Trt=="T_Viti")
+changes_t=changes[list_changes_t,]
+
+
+list_changes_A=which(changes$Trt=="A_Viti")
+changes_A=changes[list_changes_A,]
+
+
+
+list_changes_D=which(changes$Trt=="D_Viti")
+changes_D=changes[list_changes_D,]
+
+
+chgs_stb= lm(Stability~Trt+Block, data=changes)
+anova(chgs_stb)
+lsd.chg.trt=LSD.test(chgs_stb,"Trt")
+lsd.chg.trt
+
+s1=ggdensity(changes_t, x = "Stability", fill = "lightgray", title = "T_Viti\n                 b")  + ylab("Number of Data Points")+ xlab("The changes of Soil Stability (MWD)\n 2019 to 2023") + xlim(-0.5,2) + ylim(0,2)
+s2=ggdensity(changes_A, x = "Stability", fill = "lightgray", title = "A_Viti\n                 a") + ylab("Number of Data Points")+ xlab("The changes of Soil Stability (MWD)\n 2019 to 2023") + xlim(-0.5,2) + ylim(0,2)
+s3=ggdensity(changes_D, x = "Stability", fill = "lightgray", title = "A_Viti\n                 a")  + ylab("Number of Data Points")+ xlab("The changes of Soil Stability (MWD)\n 2019 to 2023")+ xlim(-0.5,2) + ylim(0,2)
+
+plot_grid(
+  s1,s2,s3,
+  nrow=1,ncol=3
+)
+```
+
+
+# The normal distribution changes of total soil organic matter in 2022
+```{r normality_TOM, echo=FALSE}
+
+chgs_TOM= lm(TOM~Trt+Block, data=changes)
+anova(chgs_TOM)
+lsd.chg.TOM=LSD.test(chgs_TOM,"Trt")
+lsd.chg.TOM
+
+C1=ggdensity(changes_t, x = "TOM", fill = "lightgray", title = "T_Viti\n                 b")  + ylab("Number of Data Points")+ xlab("The changes of total organic matter \n 2021 to 2022")+xlim(-1,2)+ylim(0,4)
+C2=ggdensity(changes_A, x = "TOM", fill = "lightgray", title = "A_Viti\n                 a") + ylab("Number of Data Points")+ xlab("The changes of total organic matter \n 2021 to 2022")+xlim(-1,2)+ylim(0,4) 
+C3=ggdensity(changes_D, x = "TOM", fill = "lightgray", title = "A_Viti\n                 a") + ylab("Number of Data Points")+ xlab("The changes of total organic matter \n 2021 to 2022")+xlim(-1,2)+ylim(0,4)
+
+plot_grid(
+  C1,C2,C3,
+  nrow=1,ncol=3
+)
+```
+
+
+# The changes of parameters (After-before)
+```{r cor_change, echo=FALSE}
+Y= changes %>% 
+ select(4:13)
+
+res <- rcorr(as.matrix(Y))
+#extarct r &p
+r = res$r
+p = res$P
+
+test1=flattenCorrMatrix(res$r, res$P)%>%
+  filter(p<=0.05,cor<=-0.5)
+test2=flattenCorrMatrix(res$r, res$P)%>%
+  filter(p<=0.05,cor>=0.5)
+
+#Select p<=0.05,cor>=0.5 or cor<=-0.5
+Cor_Change=rbind(test1,test2)%>%
+  arrange(cor)
+  
+print(Cor_Change)
+```
+
+# The cover crop coverage 
+- obs: 2 trts (Aviti + Dviti) x 2 years x 4 cover crop categories
+
+```{r covercrop, echo=FALSE}
+covercrop <- read_csv("covercrop.csv")
+
+ggplot(data=covercrop, aes(x=covercrop, y=CoverRate, fill=Treatment)) +
+  geom_bar(stat="identity", position=position_dodge())+ylab("Cover Rate (%)")+ xlab("Cover crop")+
+theme(plot.title = element_text(hjust =0.5),legend.position="bottom")+ theme(
+axis.title.x = element_text(size=14),
+axis.title.y = element_text(size=14))
+```
+
